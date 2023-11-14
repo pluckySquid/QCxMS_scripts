@@ -131,6 +131,179 @@ def main():
                 f.write(string)
                 # Replace 'file_path.txt' with the name and path of the file you want to create
         #f.write("total_atom_number" + str(total_atom_number))
+    with open("mols_reproducibility_20_traj.txt", 'w') as f:
+        f.write('smiles,energy,trajectories,gas,energy_type,atom\n')
+
+        for key, value in sorted_mol_atom_dict.items():
+            #print(key, value)
+            if "N/A" not in str(key):
+                mol = Chem.MolFromSmiles(str(key))
+                mol_withH = Chem.AddHs(mol)
+                atom_number = mol_withH.GetNumAtoms()
+                string = str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,20,n2,ecom," + str(atom_number) + "\n"
+                f.write(string)
+
+    with open("mols_reproducibility_40_traj.txt", 'w') as f:
+        f.write('smiles,energy,trajectories,gas,energy_type,atom\n')
+
+        for key, value in sorted_mol_atom_dict.items():
+            #print(key, value)
+            if "N/A" not in str(key):
+                mol = Chem.MolFromSmiles(str(key))
+                mol_withH = Chem.AddHs(mol)
+                atom_number = mol_withH.GetNumAtoms()
+                string = str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,40,n2,ecom," + str(atom_number) + "\n"
+                f.write(string)
+
+    with open("mols_reproducibility_5.5_traj.txt", 'w') as f:
+        f.write('smiles,energy,trajectories,gas,energy_type,atom\n')
+
+        for key, value in sorted_mol_atom_dict.items():
+            #print(key, value)
+            if "N/A" not in str(key):
+                mol = Chem.MolFromSmiles(str(key))
+                mol_withH = Chem.AddHs(mol)
+                atom_number = mol_withH.GetNumAtoms()
+                string = str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,5.5,n2,ecom," + str(atom_number) + "\n"
+
+                f.write(string)
+
+    with open("mols_reproducibility_80_traj.txt", 'w') as f:
+        f.write('smiles,energy,trajectories,gas,energy_type,atom\n')
+
+        for key, value in sorted_mol_atom_dict.items():
+            #print(key, value)
+            if "N/A" not in str(key):
+                mol = Chem.MolFromSmiles(str(key))
+                mol_withH = Chem.AddHs(mol)
+                atom_number = mol_withH.GetNumAtoms()
+                string = str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,80,n2,ecom," + str(atom_number) + "\n"
+
+                f.write(string)
+
+    with open("mols_reproducibility_100_traj.txt", 'w') as f:
+        f.write('smiles,energy,trajectories,gas,energy_type,atom\n')
+
+        for key, value in sorted_mol_atom_dict.items():
+            #print(key, value)
+            if "N/A" not in str(key):
+                mol = Chem.MolFromSmiles(str(key))
+                mol_withH = Chem.AddHs(mol)
+                atom_number = mol_withH.GetNumAtoms()
+                string = str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,100,n2,ecom," + str(atom_number) + "\n"
+
+                f.write(string)
+
+    with open("mols_reproducibility_200_traj.txt", 'w') as f:
+        f.write('smiles,energy,trajectories,gas,energy_type,atom\n')
+
+        for key, value in sorted_mol_atom_dict.items():
+            #print(key, value)
+            if "N/A" not in str(key):
+                mol = Chem.MolFromSmiles(str(key))
+                mol_withH = Chem.AddHs(mol)
+                atom_number = mol_withH.GetNumAtoms()
+                string = str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,200,n2,ecom," + str(atom_number) + "\n"
+
+                f.write(string)
+
+    with open("mols_reproducibility_300_traj.txt", 'w') as f:
+        f.write('smiles,energy,trajectories,gas,energy_type,atom\n')
+
+        for key, value in sorted_mol_atom_dict.items():
+            #print(key, value)
+            if "N/A" not in str(key):
+                mol = Chem.MolFromSmiles(str(key))
+                mol_withH = Chem.AddHs(mol)
+                atom_number = mol_withH.GetNumAtoms()
+                string = str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,300,n2,ecom," + str(atom_number) + "\n"
+
+                f.write(string)
+
+    with open("mols_reproducibility_500_traj.txt", 'w') as f:
+        f.write('smiles,energy,trajectories,gas,energy_type,atom\n')
+
+        for key, value in sorted_mol_atom_dict.items():
+            #print(key, value)
+            if "N/A" not in str(key):
+                mol = Chem.MolFromSmiles(str(key))
+                mol_withH = Chem.AddHs(mol)
+                atom_number = mol_withH.GetNumAtoms()
+                string = str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+                string = string + str(key) + ",5.5,500,n2,ecom," + str(atom_number) + "\n"
+
+                f.write(string)
 
 if __name__ == "__main__":
     main()

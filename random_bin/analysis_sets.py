@@ -21,7 +21,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 import math
-import statistics
+
 
 SpectrumTuple = collections.namedtuple(
     "SpectrumTuple", ["precursor_mz", "mz", "intensity"]
@@ -145,10 +145,7 @@ def get_mgf_dict(input_mgf_file, delete_precursor_switch):
                 #     mz_out.append(mz[i])
                 #     intensity_out.append(intensity[i])
                 # noise_reduction_flag and mz[i] > 50:
-                #this is the origin
-                #if mz[i] > 50 and intensity[i] > 0.1 and mz[i] < params['pepmass'][0] - 17:
-
-                if mz[i] > 50 and mz[i] < params['pepmass'][0] - 17:
+                if mz[i] > 50 and intensity[i] > 0.1 and mz[i] < params['pepmass'][0] - 17:
                     mz_out.append(mz[i])
                     intensity_out.append(intensity[i])
 
@@ -250,9 +247,9 @@ def plot_boxplot(accuracy_list, x_list, plotName="trend_boxplot.png", x_axis = "
     plt.clf()
     plt.boxplot(accuracy_list)
 #    plt.title('Intensity Trend (Boxplot)')
-    plt.xlabel(x_axis)
+    plt.xlabel("predicted spectrum")
     plt.ylabel(y_axis)
-    plt.xticks(range(1, len(x_list) + 1), x_list)  # Set x-axis tick labels
+    #plt.xticks(range(1), x_list)  # Set x-axis tick labels
     plt.savefig(plotName)
     plt.clf()
 
@@ -507,7 +504,6 @@ def main():
     simulation_num_list = []
     simulation_explained_list = []
     table_list = []
-    simulated_peaks_num_list = []
     for i in range(0, experiment_for_each_mol):
         energy_score_list.append([])
         explained_list.append([])
@@ -517,7 +513,6 @@ def main():
         row_matched_num_list.append([])
         simulation_num_list.append([])
         simulation_explained_list.append([])
-        simulated_peaks_num_list.append([])
 
     missing_counter = 0
     #smile_groundTruth_energy_dict = {}
@@ -602,7 +597,6 @@ def main():
             row_matched_num_list[i % experiment_for_each_mol].append(row_matched_num/ len(spec2.intensity)* 100)
             explained_list[i % experiment_for_each_mol].append(matched_percentage)
             explained_num[i % experiment_for_each_mol].append(matched_num/len(spec2.intensity) * 100)
-            simulated_peaks_num_list[i % experiment_for_each_mol].append(simulated_peaks_num)
             if len(spec1.intensity) != 0:
                 simulation_num_list[i % experiment_for_each_mol].append(len(matched_peaks) / len(spec1.intensity) * 100)
             else:
@@ -627,7 +621,6 @@ def main():
             explained_num[i % experiment_for_each_mol].append(0)
             simulation_num_list[i % experiment_for_each_mol].append(0)
             simulation_explained_list[i % experiment_for_each_mol].append(0)
-            simulated_peaks_num_list[i % experiment_for_each_mol].append(0)
             
             missing_counter = missing_counter + 1
             # if smile+"_" + str(counter) in smile_groundTruth_energy_dict.keys():                   
@@ -650,7 +643,6 @@ def main():
     explained_num_list = []
     simulated_raw_explained_num_list = []
     simulation_explained_intensity_list = []
-    simulated_peaks_num_list_result = []
     for i in range(1, experiment_for_each_mol + 1):
         if i == experiment_for_each_mol:
             ave_list.append(sum(energy_score_list[0]) / len(energy_score_list[0]))
@@ -662,8 +654,6 @@ def main():
             explained_num_list.append((explained_num[0]))
             simulated_raw_explained_num_list.append(simulation_num_list[0])
             simulation_explained_intensity_list.append((simulation_explained_list[0]))
-            simulated_peaks_num_list_result.append((simulated_peaks_num_list[0]))
-            
 
         else: 
             ave_list.append(sum(energy_score_list[i]) / len(energy_score_list[i]))
@@ -675,7 +665,6 @@ def main():
             explained_num_list.append((explained_num[i]))
             simulated_raw_explained_num_list.append(simulation_num_list[i])
             simulation_explained_intensity_list.append(simulation_explained_list[i])
-            simulated_peaks_num_list_result.append((simulated_peaks_num_list[i]))
 
 
     sorted_list_T = np.array(sorted_list).T
@@ -698,10 +687,9 @@ def main():
     plot_boxplot(sorted_list, energy_list, "output/cosine_score.png", "CE (eV)", "Cosine Score")
     print("energy_list, ", energy_list)
     print("raw_explained_intensity_list: ", raw_explained_intensity_list)
-    plot_boxplot(raw_explained_intensity_list, energy_list, "output/percentage_intensity_boxplot.png", "CE (eV)", "Explained Intensity")
+    plot_boxplot(raw_explained_intensity_list[0], energy_list[0], "output/percentage_intensity_boxplot.png", "predicted spectrum", "Explained Intensity")
     plot_normalized_boxplot(raw_explained_intensity_list, energy_list, "output/normalized_boxplot.png", "CE (eV)", "Explained Intensity")
     plot_boxplot(raw_explained_num_list, energy_list, "output/percentage_num_boxplot.png", "CE (eV)", "% of explained peaks")
-    plot_boxplot(simulated_peaks_num_list_result, energy_list, "output/simulated_peaks_num.png", "CE (eV)", "number of peaks")
     molecule_list = [i for i in range(0, 1)]
     plot_boxplot(best_energy_values, molecule_list, "output/each_mole_boxplot.png", "Molecule", "CE (eV)")
     plot_boxplot(best_intensity__values, molecule_list, "output/each_mole_boxplot_intensity.png", "molecule", "CE (eV)")
@@ -713,15 +701,6 @@ def main():
         table_output.write("scan,smile,USI,Adduct,instrument,energy,num_of_peaks_of_experimental_spectrum,number_of_peaks_in_simulated_spectrum, explained_intensity\n")
         for item in table_list:
             table_output.write(','.join(map(str, item)) + "\n")
-
-    mean_explained_intensities = []
-    for ex in raw_explained_intensity_list:
-        mean_explained_intensities.append(statistics.median(ex))
-    with open("output/explained_intensities_median.txt", "w") as outfile:
-        outfile.write(str(mean_explained_intensities))
-
-    with open("output/explained_intensities.txt", "w") as outfile:
-        outfile.write(str(raw_explained_intensity_list))
 
     #plot_scatter_graph(np.array(explained_intensity_list).T, energy_list)
     

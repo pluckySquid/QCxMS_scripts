@@ -21,6 +21,7 @@ from sklearn.metrics import r2_score
 import math
 from scipy.optimize import minimize
 import csv
+import os
 
 
 SpectrumTuple = collections.namedtuple(
@@ -270,12 +271,13 @@ def get_mgf_dict(input_mgf_file, delete_precursor_switch):
 
 def get_smile_peak_dict(json_smile_peak_file):
     smile_peak_dic = {}
+    noise_reduction_flag = True
     #with open(input_json_smile_file, "r") as input_json_smile_file: 
     with open(json_smile_peak_file, "r") as json_smile_peak_file:
         for line in json_smile_peak_file:
             if str(line) != "smiles: peaks_json, atom\n":
                 smile = line.split(": ")[0]
-                print("smile:", smile)
+                #print("smile:", smile)
                 data = line.split(": ")[1].split(" id=")[0]
                 
                 pattern = r'\d+\.\d+'
@@ -287,15 +289,34 @@ def get_smile_peak_dict(json_smile_peak_file):
                 mz = [x[0] for x in coords]
                 #print(mz)
                 intensity = [x[1] for x in coords]
-                normlised_intensity = norm_intensity(intensity)
-                print("intensity: ", normlised_intensity)
-                denoised_intensity = [math.sqrt(x) for x in normlised_intensity if x > 0.02]
-                indexes = [index for index, value in enumerate(normlised_intensity) if value > 0.02]
-                mz_indexes = [mz[index] for index in indexes]
+                # normlised_intensity = norm_intensity(intensity)
+                # print("intensity: ", normlised_intensity)
+                # denoised_intensity = [math.sqrt(x) for x in normlised_intensity if x > 0.02]
+                # indexes = [index for index, value in enumerate(normlised_intensity) if value > 0.02]
+                # mz_indexes = [mz[index] for index in indexes]
 
-                #print("denoised_intensity: ", denoised_intensity)
+                # #print("denoised_intensity: ", denoised_intensity)
 
-                smile_peak_dic[smile] = SpectrumTuple("0", mz_indexes,denoised_intensity)
+                # smile_peak_dic[smile] = SpectrumTuple("0", mz_indexes,denoised_intensity)
+                if len(intensity) > 0:
+                    min_intensity = min(intensity) 
+                else:
+                    min_intensity = 0
+                mz_out = []
+                intensity_out = []
+                for i in range(0, len(mz)):
+                    
+                        if noise_reduction_flag and intensity[i] > 3 * min_intensity and mz[i] > 50:
+                            mz_out.append(mz[i])
+                            intensity_out.append(intensity[i])
+                        elif not noise_reduction_flag and mz[i] > 50:
+                           # print("intensity[i]", intensity[i], "3 * min_intensity", 3 * min_intensity)
+                            mz_out.append(mz[i])
+                            intensity_out.append(intensity[i])
+
+                smile_peak_dic[smile] = SpectrumTuple("0", mz,norm_intensity(intensity))
+    return smile_peak_dic
+
     return smile_peak_dic
 
 def get_scan_smile_dict(input_json_smile_file): 
@@ -309,7 +330,7 @@ def get_scan_smile_dict(input_json_smile_file):
             if "smiles," not in line:
                 scan_smile_dict[str(scanNumber)] = line.split(",")[0]
                 if line.split(",")[0] == first_smile:
-                    energy_list.append(int(line.split(",")[1]))
+                    energy_list.append(float(line.split(",")[1]))
                     # print("same smile", line.split(",")[1])
 
                 molecule = line.split(",")[0]
@@ -413,7 +434,7 @@ def rank_by_intensity(
         sorted_intensity = [math.sqrt(x) for x in sorted_intensity]
 
         n_largest_peaks_dict[mol] = SpectrumTuple(smile_peak_dict[mol].precursor_mz, sorted_mz, sorted_intensity)
-        print("rank_by_intensity:", mol, n_largest_peaks_dict[mol])
+        #print("rank_by_intensity:", mol, n_largest_peaks_dict[mol])
     return n_largest_peaks_dict
 
 def plot_violin(energy_score_list, energy_list):
@@ -456,7 +477,7 @@ def plot_boxplot(accuracy_list, x_list, plotName="trend_boxplot.png", x_axis = "
 def plot_barplot(describing_dict, experimental_smile_intensity_dict, plotName="explain_proteomer_barplot.png"):
 # [experimental_smile_intensity_dict[smile][1][j] for j in second_elements]
 # our goal is to see if a peak is explained by one or more proteomers
-    #print("describing_dict", describing_dict)
+    #print("experimental_smile_intensity_dict", describing_dict)
 
     mol_single_proteomer_expalin_intensity_dict = {}
     mol_multi_proteomer_expalin_intensity_dict = {}
@@ -464,7 +485,8 @@ def plot_barplot(describing_dict, experimental_smile_intensity_dict, plotName="e
     mol_cannot_explain_proteomer_expalin_intensity_dict = {}
     mol_total_intensity_dict = {}
     #interate over each smile in the experimental data
-    for experiment_smile in describing_dict:    
+    for experiment_smile in describing_dict:   
+        #print("experiment_smile: ", experiment_smile) 
         # check if there is only one proteomer, if so, this smile cannot count as a multi-proteomer
         #if len(describing_dict[experiment_smile])  == 1:
         #    continue   
@@ -473,7 +495,7 @@ def plot_barplot(describing_dict, experimental_smile_intensity_dict, plotName="e
         mol_all_proteomer_expalin_intensity_dict[experiment_smile] = []
         mol_cannot_explain_proteomer_expalin_intensity_dict[experiment_smile] = []
         # #interate over each peaks in the experimental data:
-        print("experimental_smile_intensity_dict[experiment_smile]", experimental_smile_intensity_dict[experiment_smile])
+       # print("experimental_smile_intensity_dict[experiment_smile]", experimental_smile_intensity_dict[experiment_smile])
         for peak_index in range(0, len(experimental_smile_intensity_dict[experiment_smile][1])):
             proteomer_expalin_intensity = 0
             exist_num_counter = 0
@@ -481,12 +503,12 @@ def plot_barplot(describing_dict, experimental_smile_intensity_dict, plotName="e
             for proteomer_index in range(0, len(describing_dict[experiment_smile])):           
                 experiment_exist_peaks_elements = [t[1] for t in describing_dict[experiment_smile][proteomer_index]]
                 # check if the experiment peak is in this proteomer simulation:
-                print("experiment_exist_peaks_elements", experiment_exist_peaks_elements, "peak_index", peak_index)
+                #print("experiment_exist_peaks_elements", experiment_exist_peaks_elements, "peak_index", peak_index)
                 if peak_index in experiment_exist_peaks_elements:
                     # this peak has been predicted once (again)
                     exist_num_counter += 1
             
-            print("exist_num_counter", exist_num_counter, "len(describing_dict[experiment_smile])", len(describing_dict[experiment_smile]))
+            #print("exist_num_counter", exist_num_counter, "len(describing_dict[experiment_smile])", len(describing_dict[experiment_smile]))
             if exist_num_counter == 0:
                 mol_cannot_explain_proteomer_expalin_intensity_dict[experiment_smile].append(experimental_smile_intensity_dict[experiment_smile][1][peak_index])
             elif exist_num_counter == 1:
@@ -495,11 +517,6 @@ def plot_barplot(describing_dict, experimental_smile_intensity_dict, plotName="e
                 mol_all_proteomer_expalin_intensity_dict[experiment_smile].append(experimental_smile_intensity_dict[experiment_smile][1][peak_index])
             else:
                 mol_multi_proteomer_expalin_intensity_dict[experiment_smile].append(experimental_smile_intensity_dict[experiment_smile][1][peak_index])
-            # proteomer_expalin_intensity += sum(experimental_smile_intensity_dict[experiment_smile][1][i] for i in experiment_exist_peaks_elements)
-            # if experiment_smile not in mol_expalin_intensity_dict:
-            #     mol_expalin_intensity_dict[experiment_smile] = proteomer_expalin_intensity
-            # else:
-            #     mol_expalin_intensity_dict[experiment_smile].append(proteomer_expalin_intensity)
         
         total_intensity = sum (experimental_smile_intensity_dict[experiment_smile][1])
         if experiment_smile not in mol_total_intensity_dict:
@@ -592,7 +609,7 @@ def plot_barplot(describing_dict, experimental_smile_intensity_dict, plotName="e
 
 
     #plot box plot
-    print("explained_intensity_list", explained_intensity_list)
+    #print("explained_intensity_list", explained_intensity_list)
     plot_boxplot(explained_intensity_list, x_axis, plotName="explained_intensity_box_plot", x_axis = "CE (eV)", y_axis = "Accuracy")
        
 
@@ -649,7 +666,7 @@ def plot_discription_function(describing_dict, predicted_mgf_dict, smile_peak_di
     #     'list4': [0, 0, 1, 1, 0],
     # }
     # Convert dictionary values to a 2D numpy array
-    print("result_dict", result_dict)
+   # print("result_dict", result_dict)
     matrix = np.zeros((len(result_dict), max(map(len, result_dict.values()))))
 
     for i, (key, value) in enumerate(result_dict.items()):
@@ -792,8 +809,11 @@ def plot_discription_function(describing_dict, predicted_mgf_dict, smile_peak_di
         fig.tight_layout()       
 
         # Save the figure
+        if not os.path.exists('spectrum'):
+            os.mkdir('spectrum')
         try:
-            plt.savefig(str(smile)+'_intensity.png')
+            print("saving " + "spectrum/"+ str(smile)+'_intensity.png')
+            plt.savefig("spectrum/"+ str(smile)+'_intensity.png')
         except:
             print("weird naming problem when saving intensity ")
         plt.clf()
@@ -805,9 +825,30 @@ def plot_discription_function(describing_dict, predicted_mgf_dict, smile_peak_di
 
     return experimental_smile_intensity_dict
 
+
+
+def fill_blank_mgf_dict(mgf_dict, scan_smile_dict):
+    #print("scan_smile_dict", scan_smile_dict)
+    succeeded_molecules = []
+    for key in mgf_dict.keys():
+        molecule_number = key.split("-")[0]
+        if molecule_number not in succeeded_molecules:
+            succeeded_molecules.append(molecule_number)
+    #print("succeeded_molecules", succeeded_molecules)
+
+    for i in scan_smile_dict:
+        if i in succeeded_molecules:
+            pass
+        else:
+            print("This is a missing scan: scannumber = ", i, "; molecule name is: ", scan_smile_dict[i])
+            #fill a fake empty spectrum for the missing spetrum
+            mgf_dict[str(i) + "-1"] = SpectrumTuple(0, [], [])
+    return mgf_dict
+
+
 def main():
     parser = argparse.ArgumentParser(description='Merge all the MGF Files and create a summary CSV')
-    parser.add_argument('input_json_smile_file', type=str, help='input_json_smile_file is the txt file that has the information about which all the inpt smiles')
+    parser.add_argument('input_json_smile_file', type=str, help='input_json_smile_file is the txt file that starts with mols_ and has the information about which all the inpt smiles')
     parser.add_argument('json_smile_peak_file', type=str, help='json_smile_peak_file is the converted file that has the information that each smiles in the json file with its peak and intensity')
     parser.add_argument('input_mgf_file', type=str, help='input_mgf_file is the mgf file from nextflow')
     parser.add_argument('real_energy_file', type=str, help='input_mgf_file is the mgf file from HPCC')
@@ -834,13 +875,16 @@ def main():
     largest_n_peaks_spect_dict = get_n_largest_peaks(smile_peak_dict, n_peak)
 
     scan_smile_dict, energy_list, molecule_list = get_scan_smile_dict(input_json_smile_file)
-    #print("energy_list: ", energy_list)
+    #print("scan_smile_dict: ", scan_smile_dict)
 
     id_energy_dict = get_id_energy_dict(real_energy_file)
     #print("id_energy_dit: ", id_energy_dit)
 
     smile_id_dict = get_smile_id_dict(json_smile_peak_file)
     #print("smile_id_dict: ", smile_id_dict)
+
+    mgf_dict = fill_blank_mgf_dict(mgf_dict, scan_smile_dict)
+    #print("mgf_dict: ", mgf_dict)
 
     # mgf_dict:                             scan# <=> mgf's peak_intensity
     # scan_smile_dict: scan# <=> smile        |
@@ -861,7 +905,7 @@ def main():
         # print("i: ", i)
         mgf_keys.append(i.split("-")[0])
     # print("mgf_keys:", mgf_keys)
-    # print("mgf_dict.keys()", mgf_dict.keys())
+    print("mgf_dict.keys()", mgf_dict.keys())
 
     fig, ax1 = plt.subplots()
     #analysis n_largest_intensity match 
@@ -878,7 +922,7 @@ def main():
         #     break
         molecule_list.append(i)
         smile = scan_smile_dict[str(i)]
-        print("smile: ", smile)
+        #print("all the smile: ", smile)
         
         protonation_i = 1
         prediction_lists = []
@@ -897,9 +941,17 @@ def main():
                 protonation_index = str(i) + "-" + str(protonation_i)
                 print("protonation_index checking",  protonation_index)
 
+                # if protonation_index not in mgf_dict.keys():
+                #     print("protonation_index not in protonation_index",  protonation_index)
+                #     break
+                #above code is changed to the followiung:
+                if protonation_i > 20: #let's assume there are less than 20 proteomers in the molecule
+                    break
                 if protonation_index not in mgf_dict.keys():
                     print("protonation_index not in protonation_index",  protonation_index)
-                    break
+                    protonation_i += 1
+                    continue
+                
 
                 # manual 
                 spec1=mgf_dict[protonation_index]
@@ -922,9 +974,11 @@ def main():
                 print(f"matching peaks out of {n_peak}: {len(matched_peaks)}, maching percenation is: {n_peak_over_1}%", "matched_peaks: ",matched_peaks)
         
                 if smile not in describing_dict.keys():
+                    print("smile not in ", smile)
                     describing_dict[smile] = [matched_peaks]
                     predicted_mgf_dict[smile] = [mgf_dict[protonation_index]]
                 else:
+                    print("smile is in ", smile)
                     describing_dict[smile].append(matched_peaks)
                     predicted_mgf_dict[smile].append(mgf_dict[protonation_index])
 
@@ -1045,13 +1099,12 @@ def main():
         #smile = "C1=CC=C2C(=C1)C(C(=CC2=O)C)=O"
         describing_mz_dict[smile] = []
         describing_intensity_dict[smile] = []
-        print("smile:", smile )
         print(describing_true_peak_dict[smile])
         for i in describing_true_peak_dict[smile]:
             describing_mz_dict[smile].append(smile_peak_dict[smile+"_" + str(1)].mz[i])
         for i in describing_true_peak_dict[smile]:
             describing_intensity_dict[smile].append(smile_peak_dict[smile+"_" + str(1)].intensity[i])
-        print("describing_intensity_dict[smile]", describing_intensity_dict[smile])
+        #print("describing_intensity_dict[smile]", describing_intensity_dict[smile])
 
         # --- non-overlap
         non_overlap_intensity_list = []

@@ -121,7 +121,7 @@ def get_mgf_dict(input_mgf_file, delete_precursor_switch):
     count = 0
     noise_reduction_flag = False
     for spectrum in mgf.read(input_mgf_file):
-        print(spectrum)
+        #print(spectrum)
         params = spectrum.get('params')
         mz = spectrum.get('m/z array')
         intensity = spectrum.get('intensity array')
@@ -141,14 +141,9 @@ def get_mgf_dict(input_mgf_file, delete_precursor_switch):
             mz_out = []
             intensity_out = []
             for i in range(0, len(mz)):
-                # if noise_reduction_flag and mz[i] > 50:# and intensity[i] > 3 * min_intensity:
-                #     mz_out.append(mz[i])
-                #     intensity_out.append(intensity[i])
-                # noise_reduction_flag and mz[i] > 50:
-                #this is the origin
-                #if mz[i] > 50 and intensity[i] > 0.1 and mz[i] < params['pepmass'][0] - 17:
 
-                if mz[i] > 50 and mz[i] < params['pepmass'][0] - 17:
+                # Ask if this need to do this
+                # if mz[i] > 50 and intensity[i] > 0.1 and mz[i] < params['pepmass'][0] - 17:
                     mz_out.append(mz[i])
                     intensity_out.append(intensity[i])
 
@@ -203,6 +198,7 @@ def get_scan_smile_dict(input_mole_file):
     energy_list = []
     molecule_list = []
     first_smile = ""
+    traj = 0
     with open(input_mole_file) as input_mole_file:
         scanNumber = 0
         for line in input_mole_file:
@@ -219,13 +215,13 @@ def get_scan_smile_dict(input_mole_file):
             if scanNumber == 1:
                 energy_list.append(float(line.split(",")[1]))
                 first_smile = line.split(",")[0]
+                traj = line.split(",")[2]
             scanNumber = scanNumber + 1
 
-    return scan_smile_dict, energy_list, molecule_list
+    return scan_smile_dict, energy_list, molecule_list, traj
 
 def get_smile_id_dict(json_smile_peak_file):
     smile_id_dict = {}
-    #with open(input_mole_file, "r") as input_mole_file: 
     with open(json_smile_peak_file, "r") as json_smile_peak_file:
         for line in json_smile_peak_file:
             if str(line) != "smiles: peaks_json, atom\n":
@@ -261,15 +257,13 @@ def plot_normalized_boxplot(accuracy_list, x_list, plotName="normalized_boxplot.
 
     normalized_data = []  # Store normalized data for each box
 
-    first_box = accuracy_list[0]
-
     for box_data in accuracy_list:
         # Calculate the first data point in the current box
-        normalized_box_data = []
-        
-        for i in range(0, len(box_data  )):
+        first_data_point = box_data[0]
+        print("first_data_point:", first_data_point)
+
         # Normalize the current box's data by dividing each value by its first data point
-            normalized_box_data.append(box_data[i]/first_box[i])
+        normalized_box_data = [value / first_data_point for value in box_data]
 
         normalized_data.append(normalized_box_data)
 
@@ -469,20 +463,19 @@ def main():
     delete_precursor_switch = True
 
     mgf_dict = get_mgf_dict(input_mgf_file, delete_precursor_switch)
-    print("mgf_dict.keys(): ", mgf_dict.keys())
-    #print("mgf:", mgf_dict)
+    print("mgf_dict: ", mgf_dict)
 
     smile_peak_dict = get_smile_peak_dict(json_smile_peak_file)
     #print("smile_peak_dict: ", smile_peak_dict)
     largest_n_peaks_spect_dict = get_n_largest_peaks(smile_peak_dict, n_peak)
 
-    scan_smile_dict, energy_list, molecule_list = get_scan_smile_dict(input_mole_file)
+    scan_smile_dict, energy_list, molecule_list, traj = get_scan_smile_dict(input_mole_file)
     #print("energy_list: ", energy_list)
 
     id_energy_dict = get_id_energy_dict(real_energy_file)
     #print("id_energy_dit: ", id_energy_dit)
 
-    smile_id_dict = get_smile_id_dict(json_smile_peak_file)
+    smile_id_dict= get_smile_id_dict(json_smile_peak_file)
     #print("smile_id_dict: ", smile_id_dict)
 
     smile_info_dict = get_compund_info(input_mole_file, experiment_json)
@@ -497,345 +490,45 @@ def main():
     if not os.path.exists('output'):
         os.mkdir('output')
 
-    score_list=[]
-    explained_list = []
-    explained_num = []
-    energy_score_list = []
-    sqrt_energy_score_list = []
-    row_matched_intensity_list = []
-    row_matched_num_list = []
-    simulation_num_list = []
-    simulation_explained_list = []
-    table_list = []
-    simulated_peaks_num_list = []
-    for i in range(0, experiment_for_each_mol):
-        energy_score_list.append([])
-        explained_list.append([])
-        explained_num.append([])
-        sqrt_energy_score_list.append([])
-        row_matched_intensity_list.append([])
-        row_matched_num_list.append([])
-        simulation_num_list.append([])
-        simulation_explained_list.append([])
-        simulated_peaks_num_list.append([])
 
-    missing_counter = 0
-    #smile_groundTruth_energy_dict = {}
-    each_mol_matched_list = []
-    each_mol_matched_index_list = []
-    simulated_mol_matched_list = []
-    matched_percentage_pre = 0
-    simulated_matched_percentage = 0
-    counter = 1
-    # scan starts from 1:
-    for i in range(1, len(scan_smile_dict)+1) :
-        if i % len(energy_list) == 1 or len(energy_list) == 1:
-            each_mol_matched_list = []
-            each_mol_matched_index_list = []
-            simulated_mol_matched_list = []
-        
-        row_matched_num = 0
-        experimental_peaks_num = 0
-        simulated_peaks_num = 0
-        explained_intensity = 0
-        smile = scan_smile_dict[str(i)]
-        if str(i) in mgf_dict.keys():        
-            counter = 1
-            
-            if smile+"_" + str(counter) not in smile_peak_dict:
-                continue
-            # if smile+"_" + str(counter) in smile_groundTruth_energy_dict.keys():                   
-            #     smile_groundTruth_energy_dict[smile] = id_energy_dict[smile_id_dict[smile]]
-            # else:
-            #     smile_groundTruth_energy_dict[smile] = id_energy_dict[smile_id_dict[smile+"_" + str(counter)]]
-            # spec1 is the mgf file or let;s say it is the simulated spec, spec2 is the experimental spec
-            spec1=mgf_dict[str(i)]
-            spec2=smile_peak_dict[smile+"_" + str(counter)]
-            score, matched_peaks=_cosine_fast(spec1,spec2,0.1,False)
-            spec1_sqrt = SpectrumTuple(spec1.precursor_mz,spec1.mz,norm_intensity([math.sqrt(i) for i in spec1.intensity]))
-            spec2_sqrt = SpectrumTuple(spec2.precursor_mz,spec2.mz,norm_intensity([math.sqrt(i) for i in spec2.intensity]))
-            score_sqrt, matched_peaks_sqrt=_cosine_fast(spec1_sqrt,spec2_sqrt,0.1,False)
-            raw_matched_intensity = 0
-            simulated_matched_intensity = 0
+    smile_list = []
+    similarity_scores = []
 
-            print("ii", i)
-            for tuple in matched_peaks:
-                #if spec2.intensity[tuple[1]] not in each_mol_matched_list:
-                if tuple[1] not in each_mol_matched_index_list:
-                    print("1. spec2.intensity[tuple[1]]", spec2.intensity[tuple[1]])
-                    each_mol_matched_list.append(spec2.intensity[tuple[1]])
-                    simulated_mol_matched_list.append(spec1.intensity[tuple[0]])
-                    each_mol_matched_index_list.append(tuple[1])
-                print("2. spec2.intensity[tuple[1]]", spec2.intensity[tuple[1]])
-                raw_matched_intensity += spec2.intensity[tuple[1]]
-                simulated_matched_intensity +=  spec1.intensity[tuple[0]]
-            
-            # for tuple in matched_peaks:
-                
-
-            matched_intensity = sum(each_mol_matched_list)
-            matched_num = len(each_mol_matched_list)
-            all_intensity = sum(spec2.intensity)
-            matched_percentage = matched_intensity / all_intensity * 100
-            raw_matched_percentage = raw_matched_intensity / all_intensity * 100
-            print("raw_matched_percentage", raw_matched_percentage)
-            print("matched_percentage", matched_percentage)
-            if sum(spec1.intensity) != 0: 
-                simulated_matched_percentage = simulated_matched_intensity / sum(spec1.intensity) * 100
-            else:
-                simulated_matched_percentage = 0
-            matched_percentage_pre = matched_percentage
-            simulated_matched_percentage_pre = simulated_matched_percentage * 100
-
-            if len(matched_peaks) <= 3:
-                score = 0
-
-            row_matched_num = len(matched_peaks) 
-            experimental_peaks_num = len(spec2.intensity)
-            explained_intensity = matched_percentage
-            simulated_peaks_num = len(spec1.intensity)
-            print("simulated_peaks_num: ", simulated_peaks_num)
-
-            energy_score_list[i % experiment_for_each_mol].append(score * 100)
-            sqrt_energy_score_list[i % experiment_for_each_mol].append(score_sqrt)
-            row_matched_intensity_list[i % experiment_for_each_mol].append(raw_matched_percentage)
-            row_matched_num_list[i % experiment_for_each_mol].append(row_matched_num/ len(spec2.intensity)* 100)
-            explained_list[i % experiment_for_each_mol].append(matched_percentage)
-            explained_num[i % experiment_for_each_mol].append(matched_num/len(spec2.intensity) * 100)
-            simulated_peaks_num_list[i % experiment_for_each_mol].append(simulated_peaks_num)
-            if len(spec1.intensity) != 0:
-                simulation_num_list[i % experiment_for_each_mol].append(len(matched_peaks) / len(spec1.intensity) * 100)
-            else:
-                simulation_num_list[i % experiment_for_each_mol].append(0)
-            simulation_explained_list[i % experiment_for_each_mol].append(simulated_matched_percentage)
-
-            score_list.append(score)
-            print("explained_intensity:", explained_intensity)
-            print("len(spec1).intensity", len(spec1.intensity))
-
-            
+    smile_counter = 0
+    for i in range(0, len(scan_smile_dict)+1):
+        print("i:", i)
+        if i % experiment_for_each_mol == 0:
+            if i != len(scan_smile_dict):
+                smile_list.append([])
+                similarity_scores.append([])
+            if i != 0:
+                # for example, the 10th smile should be in the first list
+                smile_list[int(i/experiment_for_each_mol) - 1].append(mgf_dict[str(i) + "-1"])
+                smile_counter += 1
         else:
-            print("do not have this scan: ", i)
-            score = 0
-            score_sqrt = 0
-            score_list.append(score)
-            energy_score_list[i % experiment_for_each_mol].append(score)
-            sqrt_energy_score_list[i % experiment_for_each_mol].append(score_sqrt)
-            row_matched_intensity_list[i % experiment_for_each_mol].append(0)
-            row_matched_num_list[i % experiment_for_each_mol].append(0)
-            explained_list[i % experiment_for_each_mol].append(0)
-            explained_num[i % experiment_for_each_mol].append(0)
-            simulation_num_list[i % experiment_for_each_mol].append(0)
-            simulation_explained_list[i % experiment_for_each_mol].append(0)
-            simulated_peaks_num_list[i % experiment_for_each_mol].append(0)
-            
-            missing_counter = missing_counter + 1
-            # if smile+"_" + str(counter) in smile_groundTruth_energy_dict.keys():                   
-            #     smile_groundTruth_energy_dict[smile] = id_energy_dict[smile_id_dict[smile]]
-            # else:
-            #     smile_groundTruth_energy_dict[smile] = id_energy_dict[smile_id_dict[smile+"_" + str(counter)]]
+            smile_list[int(i/experiment_for_each_mol)].append(mgf_dict[str(i) + "-1"])
 
-        #items scan, smile, energy, num_of_peaks_of_experimental_spectrum, number_of_peaks_in_simulated_spectrum, explained_intensity
-        item = [i, scan_smile_dict[str(i)], energy_list[(i-1)%len(energy_list)], experimental_peaks_num, simulated_peaks_num, explained_intensity]
-        table_item = item[:2] + smile_info_dict[scan_smile_dict[str(i)]] + item[2:]
-        table_list.append(table_item)
-           
+    print("smile_list",  smile_list)
 
-    ave_list = []
-    sorted_list = []
-    sqrt_sorted_list = []
-    explained_intensity_list = []
-    raw_explained_intensity_list = []
-    raw_explained_num_list = []
-    explained_num_list = []
-    simulated_raw_explained_num_list = []
-    simulation_explained_intensity_list = []
-    simulated_peaks_num_list_result = []
-    for i in range(1, experiment_for_each_mol + 1):
-        if i == experiment_for_each_mol:
-            ave_list.append(sum(energy_score_list[0]) / len(energy_score_list[0]))
-            sorted_list.append((energy_score_list[0]))
-            sqrt_sorted_list.append((sqrt_energy_score_list[0]))
-            raw_explained_intensity_list.append(row_matched_intensity_list[0])
-            raw_explained_num_list.append(row_matched_num_list[0])
-            explained_intensity_list.append((explained_list[0]))
-            explained_num_list.append((explained_num[0]))
-            simulated_raw_explained_num_list.append(simulation_num_list[0])
-            simulation_explained_intensity_list.append((simulation_explained_list[0]))
-            simulated_peaks_num_list_result.append((simulated_peaks_num_list[0]))
-            
+    smile_counter = 0
+    x_axis = [0]
+    for molecule in smile_list:
+        for pair in itertools.combinations(molecule, 2):
+            mol1, mol2 = pair
+            score, matched_peaks = _cosine_fast(mol1,mol2,0.1,False)
+            similarity_scores[smile_counter].append(score)
+        smile_counter += 1
+        x_axis.append(smile_counter)
 
-        else: 
-            ave_list.append(sum(energy_score_list[i]) / len(energy_score_list[i]))
-            sorted_list.append((energy_score_list[i]))
-            sqrt_sorted_list.append((sqrt_energy_score_list[i]))
-            raw_explained_intensity_list.append(row_matched_intensity_list[i])
-            raw_explained_num_list.append(row_matched_num_list[i])
-            explained_intensity_list.append((explained_list[i]))
-            explained_num_list.append((explained_num[i]))
-            simulated_raw_explained_num_list.append(simulation_num_list[i])
-            simulation_explained_intensity_list.append(simulation_explained_list[i])
-            simulated_peaks_num_list_result.append((simulated_peaks_num_list[i]))
+    print(similarity_scores)
+    print("len(similarity_scores): ", len(similarity_scores))
+    plot_boxplot(similarity_scores, x_axis, "output/reproducibility.png", "Molecule Index", "Cosine Score")
 
-
-    sorted_list_T = np.array(sorted_list).T
-    raw_explained_intensity_list_T = np.array(raw_explained_intensity_list).T
-    sorted_raw_explained_intensity_list_T = [sorted(sublist) for sublist in raw_explained_intensity_list_T]
-    sorted_raw_explained_intensity_list = np.array(sorted_raw_explained_intensity_list_T).T
-    raw_explained_num_list_T = np.array(raw_explained_num_list).T
-    sorted_raw_explained_num_list_T = [sorted(sublist) for sublist in raw_explained_num_list_T]
-    sorted_raw_explained_num_list = np.array(sorted_raw_explained_num_list_T).T
-    best_cosine_for_each_molecule_index = np.argmax(sorted_list_T, axis=1)
-    best_intensity__each_molecule_index = np.argmax(raw_explained_intensity_list_T, axis=1)
-    #best_energy_values = [[energy_list[index]] for index in best_cosine_for_each_molecule_index]
-    best_energy_values = [energy_list[index] for index in best_cosine_for_each_molecule_index]
-    best_intensity__values = [energy_list[index] for index in best_intensity__each_molecule_index]
-
-    temp_list = [i for i in range(1, len(energy_list) + 1)]
-    #plot_dual_line_graph(sorted_raw_explained_intensity_list, sorted_raw_explained_num_list, temp_list, "predicted_numbers.png")
-    #plot_line_graph(sorted_list, energy_list, "cosine_line.png")
-    #plot_line_graph(sqrt_sorted_list, energy_list, "sqrt_cosine_line.png")
-    plot_boxplot(sorted_list, energy_list, "output/cosine_score.png", "CE (eV)", "Cosine Score")
-    print("energy_list, ", energy_list)
-    print("raw_explained_intensity_list: ", raw_explained_intensity_list)
-    plot_boxplot(raw_explained_intensity_list, energy_list, "output/percentage_intensity_boxplot.png", "CE (eV)", "Explained Intensity")
-    plot_normalized_boxplot(raw_explained_intensity_list, energy_list, "output/normalized_boxplot.png", "CE (eV)", "Explained Intensity")
-    plot_boxplot(raw_explained_num_list, energy_list, "output/percentage_num_boxplot.png", "CE (eV)", "% of explained peaks")
-    plot_boxplot(simulated_peaks_num_list_result, energy_list, "output/simulated_peaks_num.png", "CE (eV)", "number of peaks")
-    molecule_list = [i for i in range(0, 1)]
-    plot_boxplot(best_energy_values, molecule_list, "output/each_mole_boxplot.png", "Molecule", "CE (eV)")
-    plot_boxplot(best_intensity__values, molecule_list, "output/each_mole_boxplot_intensity.png", "molecule", "CE (eV)")
-    plot_boxplot(simulated_raw_explained_num_list, energy_list, "output/simulated_percentage_num_boxplot.png", "CE (eV)", "% of explained peaks")
-    plot_boxplot(simulation_explained_intensity_list, energy_list, "output/simulated_percentage_intensity_boxplot.png", "CE (eV)", "Explained Intensity")
-
-    # write the table
-    with open("output/table.txt", "w") as table_output:
-        table_output.write("scan,smile,USI,Adduct,instrument,energy,num_of_peaks_of_experimental_spectrum,number_of_peaks_in_simulated_spectrum, explained_intensity\n")
-        for item in table_list:
-            table_output.write(','.join(map(str, item)) + "\n")
-
-    mean_explained_intensities = []
-    for ex in raw_explained_intensity_list:
-        mean_explained_intensities.append(statistics.median(ex))
-    with open("output/explained_intensities_median.txt", "w") as outfile:
-        outfile.write(str(mean_explained_intensities))
-
-    with open("output/explained_intensities.txt", "w") as outfile:
-        outfile.write(str(raw_explained_intensity_list))
-
-    #plot_scatter_graph(np.array(explained_intensity_list).T, energy_list)
-    
-    # --------------------------below has not been cleaned -----------------------------------
-    #ana_energy_score(energy_score_list, energy_list)
-    plot_violin(energy_score_list, energy_list)
-    plt.clf()
-
-    sns.heatmap(sorted_list_T, cmap='YlGnBu', annot=False, xticklabels=energy_list)
-    plt.title('Accuracy of Collision Energy')
-    plt.xlabel('collision Energy')
-    plt.ylabel('molecules')
-    plt.savefig('output/spec.png')
-
-
-    #analysis n_largest_intensity match 
-    num_of_matches = []
-    for i in range(1, len(scan_smile_dict)+1) :
-        print("mgf_dict.keys(): ", mgf_dict.keys())
-        smile = scan_smile_dict[str(i)]
-        if str(i) in mgf_dict.keys():        
-            counter = 1
-            if smile+"_" + str(counter) not in smile_peak_dict:
-                continue
-            spec1=mgf_dict[str(i)]
-            spec2=largest_n_peaks_spect_dict[smile+"_" + str(counter)]
-            score, matched_peaks=_cosine_fast(spec1,spec2,0.1,False)
-            num_of_matches.append(matched_peaks)
-
-            n_peak_over_1 = len(matched_peaks) / n_peak * 100
-            #print(f"matching peaks out of {n_peak}: {len(matched_peaks)}, maching percenation is: {n_peak_over_1}%")
-
-    molecule_energy_score_list = np.array(sorted_list).T
-    #print(molecule_energy_score_list)
-    max_molecule_energy_score_list = []
-    max_score_list = []
-    useful_molecule_index = []
-    #print("max_molecule_energy_score_list: ", max_molecule_energy_score_list)
-    counter = 0
-    for i in molecule_energy_score_list:
-        max_score_list.append(max(i))
-        max_molecule_energy_score_list.append(energy_list[np.argmax(i)])
-        #store the molecule that has the highest score > shreshold
-        if max(i) > 0.7:
-            useful_molecule_index.append(counter)
-            #print("useful molecule: ", molecule_list[counter])
-        counter += 1
-
-    # not a function, but to produce the not good predictions
-    counter = 0
-    for i in molecule_energy_score_list:
-        if max(i) < 0.7:
-            print("bad molecule: ", molecule_list[counter])
-        counter += 1
-  
-    print("useful_molecule_index: ", useful_molecule_index)
-    print("max_molecule_energy_score_list", max_molecule_energy_score_list)
-    print("smile_groundTruth_energy_dict: ", smile_groundTruth_energy_dict)
-    print("max_score_list: ", max_score_list)
-    for i in max_score_list:
-        print(i)
-    groundTruth_energy_list = [float(x) for x in smile_groundTruth_energy_dict.values()]
-
-    max_molecule_energy_score_list = np.array(max_molecule_energy_score_list).reshape(-1, 1)
-    poly = PolynomialFeatures(degree=1)
-    x_poly = poly.fit_transform(np.array(max_molecule_energy_score_list).reshape(-1, 1))
-    regressor = LinearRegression()
-    regressor.fit(x_poly, np.array(groundTruth_energy_list))
-
-    y_pred = regressor.predict(x_poly)
-
-    # Calculate the R-squared value
-    r2 = r2_score(np.array(groundTruth_energy_list), y_pred)
-    print("R-squared value:", r2)
-
-    # Print the regression results
-    print("Coefficients: ", regressor.coef_)
-    print("Intercept: ", regressor.intercept_)
-    
-    #only use those useful useful_molecule to do regression
-    useful_molecule_energy_score_list = []
-    useful_groundTruth_energy_list = []
-    for i in useful_molecule_index:
-        print("useful_molecule_index: ", i)
-        useful_molecule_energy_score_list.append(max_molecule_energy_score_list[i])
-        useful_groundTruth_energy_list.append(groundTruth_energy_list[i])
-
-    print("useful_molecule_energy_score_list", useful_molecule_energy_score_list)
-    print("useful_groundTruth_energy_list: ", useful_groundTruth_energy_list)
-    
-    useful_molecule_energy_score_list = np.array(useful_molecule_energy_score_list).reshape(-1, 1)
-    poly = PolynomialFeatures(degree=1)
-    x_poly = poly.fit_transform(np.array(useful_molecule_energy_score_list).reshape(-1, 1))
-    regressor = LinearRegression()
-    regressor.fit(x_poly, np.array(useful_groundTruth_energy_list))
-
-    y_pred = regressor.predict(x_poly)
-
-
-
-    # Calculate the R-squared value
-    r2 = r2_score(np.array(useful_groundTruth_energy_list), y_pred)
-    print("useful R-squared value:", r2)
-
-    # Print the regression results
-    print("useful Coefficients: ", regressor.coef_)
-    print("useful Intercept: ", regressor.intercept_)
-
-
-    
-
-# add legend
-plt.legend()
-
+    medium_list = []
+    for i in similarity_scores:
+        medium_list.append(statistics.median(i))
+    with open ("output/reproducibility.txt", "w") as outfile:
+        outfile.write(str(traj) + ": " + str(medium_list)) 
 
 
 if __name__ == "__main__":
